@@ -1,0 +1,18 @@
+[package]
+name = "cherry-pac"
+version = "0.0.0"
+authors = ["Vitaly Domnikov <oss@vitaly.codes>"]
+license = "MIT/APACHE"
+edition = "2018"
+
+[dependencies]
+bare-metal = "0.2.4"
+riscv = "0.6.0"
+riscv-rt = { version = "0.8", optional = true }
+vcell = "0.1.2"
+
+[build-dependencies]
+svd2ral = { git = "https://github.com/Disasm/svd2ral" }
+
+[features]
+rt = ["riscv-rt"]
