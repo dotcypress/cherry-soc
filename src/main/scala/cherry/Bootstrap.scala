@@ -23,12 +23,22 @@ object Bootstrap {
   }
 }
 
+case class SnapOff() extends Bundle {
+  val pin4 = in(Bool())
+  val pin9 = in(Bool())
+  val pin10 = in(Bool())
+  val pin1 = out(Bool())
+  val pin2 = out(Bool())
+  val pin3 = out(Bool())
+  val pin7 = out(Bool())
+  val pin8 = out(Bool())
+}
+
 case class Bootstrap() extends Component {
   val io = new Bundle {
     val uart = master(Uart())
-    val button = in(Bool())
-    val ledGreen = out(Bool())
-    val ledRed = out(Bool())
+    val reset = in(Bool())
+    val pmod2 = SnapOff()
   }
 
   val cherry = CherryCore(
@@ -39,11 +49,19 @@ case class Bootstrap() extends Component {
   cherry.io.jtag.tms := False
   cherry.io.jtag.tdi := False
 
-  cherry.io.asyncReset := io.button
+  cherry.io.asyncReset := io.reset
   cherry.io.uart <> io.uart
 
-  val gpio = cherry.io.gpio.write
-  io.ledRed := gpio(1)
-  io.ledGreen := ~gpio(1)
-  cherry.io.gpio.read := 0
+  val gpio = cherry.io.gpio
+
+  gpio.write(0) <> io.pmod2.pin7
+  gpio.write(1) <> io.pmod2.pin1
+  gpio.write(2) <> io.pmod2.pin2
+  gpio.write(3) <> io.pmod2.pin8
+  gpio.write(4) <> io.pmod2.pin3
+
+  gpio.read := 0
+  io.pmod2.pin9 <> gpio.read(31)
+  io.pmod2.pin4 <> gpio.read(30)
+  io.pmod2.pin10 <> gpio.read(29)
 }

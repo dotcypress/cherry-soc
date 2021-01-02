@@ -16,7 +16,8 @@ case class CherryConfig(
     onChipRamHexFile: String,
     coreFrequency: HertzNumber,
     onChipRamSize: BigInt,
-    gpioWidth: Int
+    gpioWidth: Int,
+    enableDebug: Boolean
 )
 
 object CherryConfig {
@@ -25,7 +26,8 @@ object CherryConfig {
       onChipRamHexFile = onChipRamHexFile,
       coreFrequency = 12 MHz,
       onChipRamSize = 8 kB,
-      gpioWidth = 32
+      gpioWidth = 32,
+      enableDebug = false
     )
 }
 
@@ -33,8 +35,9 @@ case class CherryCore(config: CherryConfig) extends Component {
   val io = new Bundle {
     val asyncReset = in(Bool())
     val jtag = slave(Jtag())
-    val uart = master(Uart())
+
     val gpio = master(TriStateArray(config.gpioWidth bits))
+    val uart = master(Uart())
   }
 
   val resetCtrlClockDomain = ClockDomain(
@@ -65,12 +68,6 @@ case class CherryCore(config: CherryConfig) extends Component {
     frequency = FixedFrequency(config.coreFrequency)
   )
 
-  val debugClockDomain = ClockDomain(
-    clock = clockDomain.readClockWire,
-    reset = resetCtrl.mainClkReset,
-    frequency = FixedFrequency(config.coreFrequency)
-  )
-
   new ClockingArea(systemClockDomain) {
     val pipelinedMemoryBusConfig = PipelinedMemoryBusConfig(
       addressWidth = 32,
@@ -96,12 +93,28 @@ case class CherryCore(config: CherryConfig) extends Component {
         bypassWriteBack = true,
         bypassWriteBackBuffer = true
       ),
-      new BranchPlugin(earlyBranch = false),
-      new DebugPlugin(debugClockDomain)
+      new BranchPlugin(earlyBranch = true),
+      new YamlPlugin("cpu0.yaml")
     )
 
+    if (config.enableDebug) {
+      val debugClockDomain = ClockDomain(
+        clock = clockDomain.readClockWire,
+        reset = resetCtrl.mainClkReset,
+        frequency = FixedFrequency(config.coreFrequency)
+      )
+
+      val debugPlugin = new DebugPlugin(debugClockDomain)
+      debugPlugin.debugClockDomain {
+        resetCtrl.systemReset setWhen (RegNext(debugPlugin.io.resetOut))
+        io.jtag <> debugPlugin.io.bus.fromJtag()
+      }
+
+      plugins += debugPlugin
+    }
+
     val cpu = new VexRiscv(VexRiscvConfig(plugins))
-    val mainBusArbiter = new MasterBusArbiter(pipelinedMemoryBusConfig)
+    val mainBusArbiter = new MainBusArbiter(pipelinedMemoryBusConfig)
 
     val timerInterrupt = False
     val externalInterrupt = False
@@ -117,11 +130,6 @@ case class CherryCore(config: CherryConfig) extends Component {
         plugin.externalInterrupt := externalInterrupt
         plugin.timerInterrupt := timerInterrupt
       }
-      case plugin: DebugPlugin =>
-        plugin.debugClockDomain {
-          resetCtrl.systemReset setWhen (RegNext(plugin.io.resetOut))
-          io.jtag <> plugin.io.bus.fromJtag()
-        }
       case _ =>
     }
 

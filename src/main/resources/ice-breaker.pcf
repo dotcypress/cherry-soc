@@ -1,9 +1,9 @@
 # 12 MHz clock
 set_io -nowarn clk                 35
 
-# Soft reset (uButton)
+# Soft reset
 set_io -nowarn resetn              10
-set_io -nowarn io_button           10
+set_io -nowarn io_reset            10
 
 # RS232
 set_io -nowarn io_rx               6

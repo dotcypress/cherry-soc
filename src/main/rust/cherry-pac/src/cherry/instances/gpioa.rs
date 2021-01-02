@@ -2,13 +2,13 @@
 #![allow(non_camel_case_types)]
 //! General Purpose I/O
 
-pub use super::super::peripherals::gpio::Instance;
-pub use super::super::peripherals::gpio::{RegisterBlock, ResetValues};
-pub use super::super::peripherals::gpio::{INPUT, OUTPUT, DIRECTION};
+pub use super::super::peripherals::gpioa::Instance;
+pub use super::super::peripherals::gpioa::{RegisterBlock, ResetValues};
+pub use super::super::peripherals::gpioa::{IDR, ODR, MODER};
 
 
-/// Access functions for the GPIO peripheral instance
-pub mod GPIO {
+/// Access functions for the GPIOA peripheral instance
+pub mod GPIOA {
     use super::ResetValues;
     use super::Instance;
 
@@ -17,19 +17,19 @@ pub mod GPIO {
         _marker: ::core::marker::PhantomData,
     };
 
-    /// Reset values for each field in GPIO
+    /// Reset values for each field in GPIOA
     pub const reset: ResetValues = ResetValues {
-        INPUT: 0x0,
-        OUTPUT: 0x0,
-        DIRECTION: 0x0,
+        IDR: 0x0,
+        ODR: 0x0,
+        MODER: 0x0,
     };
 
     #[allow(renamed_and_removed_lints)]
     #[allow(private_no_mangle_statics)]
     #[no_mangle]
-    static mut GPIO_TAKEN: bool = false;
+    static mut GPIOA_TAKEN: bool = false;
 
-    /// Safe access to GPIO
+    /// Safe access to GPIOA
     ///
     /// This function returns `Some(Instance)` if this instance is not
     /// currently taken, and `None` if it is. This ensures that if you
@@ -44,16 +44,16 @@ pub mod GPIO {
     #[inline]
     pub fn take() -> Option<Instance> {
         crate::arch::interrupt::free(|_| unsafe {
-            if GPIO_TAKEN {
+            if GPIOA_TAKEN {
                 None
             } else {
-                GPIO_TAKEN = true;
+                GPIOA_TAKEN = true;
                 Some(INSTANCE)
             }
         })
     }
 
-    /// Release exclusive access to GPIO
+    /// Release exclusive access to GPIOA
     ///
     /// This function allows you to return an `Instance` so that it
     /// is available to `take()` again. This function will panic if
@@ -62,15 +62,15 @@ pub mod GPIO {
     #[inline]
     pub fn release(inst: Instance) {
         crate::arch::interrupt::free(|_| unsafe {
-            if GPIO_TAKEN && inst.addr == INSTANCE.addr {
-                GPIO_TAKEN = false;
+            if GPIOA_TAKEN && inst.addr == INSTANCE.addr {
+                GPIOA_TAKEN = false;
             } else {
                 panic!("Released a peripheral which was not taken");
             }
         });
     }
 
-    /// Unsafely steal GPIO
+    /// Unsafely steal GPIOA
     ///
     /// This function is similar to take() but forcibly takes the
     /// Instance, marking it as taken irregardless of its previous
@@ -78,11 +78,11 @@ pub mod GPIO {
     #[allow(clippy::missing_safety_doc)]
     #[inline]
     pub unsafe fn steal() -> Instance {
-        GPIO_TAKEN = true;
+        GPIOA_TAKEN = true;
         INSTANCE
     }
 
-    /// Unsafely obtains an instance of GPIO
+    /// Unsafely obtains an instance of GPIOA
     ///
     /// This will not check if `take()` or `steal()` have already been called
     /// before. It is the caller's responsibility to use the returned instance
@@ -94,7 +94,7 @@ pub mod GPIO {
     }
 }
 
-/// Raw pointer to GPIO
+/// Raw pointer to GPIOA
 ///
 /// Dereferencing this is unsafe because you are not ensured unique
 /// access to the peripheral, so you may encounter data races with
@@ -103,4 +103,4 @@ pub mod GPIO {
 ///
 /// This constant is provided for ease of use in unsafe code: you can
 /// simply call for example `write_reg!(gpio, GPIOA, ODR, 1);`.
-pub const GPIO: *const RegisterBlock = 0xf0000000 as *const _;
+pub const GPIOA: *const RegisterBlock = 0xf0000000 as *const _;

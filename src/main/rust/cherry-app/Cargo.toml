@@ -3,20 +3,17 @@ name = "cherry-app"
 version = "0.0.0"
 authors = ["Vitaly Domnikov <oss@vitaly.codes>"]
 edition = "2018"
-license = "MIT/APACHE"
-
-[dependencies]
-panic-halt = "0.2.0"
-riscv = "0.6.0"
-riscv-rt = "0.8.0"
-cherry-pac = { path = "../cherry-pac/", features = ["rt"]}
+license = "MIT/Apache-2.0"
 
 [[bin]]
 name = "cherry-app"
 test = false
 bench = false
 
+[dependencies]
+panic-halt = "0.2.0"
+cherry-hal = { path = "../cherry-hal/"}
+
 [profile.release]
 codegen-units = 1
-debug = true
 lto = true

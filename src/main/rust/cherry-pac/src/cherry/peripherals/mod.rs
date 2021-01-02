@@ -1,1 +1,1 @@
-pub mod gpio;
+pub mod gpioa;

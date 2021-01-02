@@ -6,7 +6,7 @@ import spinal.lib.bus.misc._
 import spinal.lib.bus.simple._
 import vexriscv.plugin._
 
-class MasterBusArbiter(memoryBusConfig: PipelinedMemoryBusConfig)
+class MainBusArbiter(memoryBusConfig: PipelinedMemoryBusConfig)
     extends Component {
   val io = new Bundle {
     val iBus = slave(IBusSimpleBus(null))

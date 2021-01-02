@@ -8,4 +8,4 @@ pub(crate) mod instances;
 /// Metadata
 pub mod metadata;
 
-pub use self::instances::gpio;
+pub use self::instances::gpioa;
