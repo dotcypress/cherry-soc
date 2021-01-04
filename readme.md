@@ -1,6 +1,6 @@
 # Cherry SoC
 
-VexRiscv based SoC
+Educational VexRiscv SoC
 
 ### License
 

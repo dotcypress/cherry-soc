@@ -12,32 +12,14 @@ import vexriscv.{VexRiscv, VexRiscvConfig, plugin}
 import vexriscv.plugin._
 import spinal.lib.io.TriStateArray
 
-case class CherryConfig(
-    onChipRamHexFile: String,
-    coreFrequency: HertzNumber,
-    onChipRamSize: BigInt,
-    gpioWidth: Int,
-    enableDebug: Boolean
-)
-
-object CherryConfig {
-  def default(onChipRamHexFile: String) =
-    CherryConfig(
-      onChipRamHexFile = onChipRamHexFile,
-      coreFrequency = 12 MHz,
-      onChipRamSize = 8 kB,
-      gpioWidth = 32,
-      enableDebug = false
-    )
-}
-
-case class CherryCore(config: CherryConfig) extends Component {
+case class CherrySoC(config: CherryConfig) extends Component {
   val io = new Bundle {
     val asyncReset = in(Bool())
     val jtag = slave(Jtag())
 
     val gpio = master(TriStateArray(config.gpioWidth bits))
     val uart = master(Uart())
+    val panic = out(Bool())
   }
 
   val resetCtrlClockDomain = ClockDomain(
@@ -145,45 +127,29 @@ case class CherryCore(config: CherryConfig) extends Component {
       pipelineBridge = true
     )
 
+    val sysCtrl = new SystemCtrl()
+    io.panic := sysCtrl.io.panic
+
     val gpioCtrl = Apb3Gpio(
       gpioWidth = config.gpioWidth,
       withReadSync = true
     )
     io.gpio <> gpioCtrl.io.gpio
 
-    val uartCtrl = Apb3UartCtrl(
-      UartCtrlMemoryMappedConfig(
-        uartCtrlConfig = UartCtrlGenerics(
-          dataWidthMax = 8,
-          clockDividerWidth = 20,
-          preSamplingSize = 1,
-          samplingSize = 3,
-          postSamplingSize = 1
-        ),
-        initConfig = UartCtrlInitConfig(
-          baudrate = 115200,
-          dataLength = 7,
-          parity = UartParityType.NONE,
-          stop = UartStopType.ONE
-        ),
-        busCanWriteClockDividerConfig = false,
-        busCanWriteFrameConfig = false,
-        txFifoDepth = 16,
-        rxFifoDepth = 16
-      )
-    )
+    val uartCtrl = Apb3UartCtrl(config.uartConfig)
     uartCtrl.io.uart <> io.uart
     externalInterrupt setWhen (uartCtrl.io.interrupt)
 
-    val timerCtrl = new Apb3TimerCtrl()
+    val timerCtrl = new TimerCtrl()
     timerInterrupt setWhen (timerCtrl.io.interrupt)
 
     Apb3Decoder(
       apbBridge.io.apb,
       ArrayBuffer[(Apb3, SizeMapping)](
-        gpioCtrl.io.apb -> (0x00000, 4 kB),
-        uartCtrl.io.apb -> (0x10000, 4 kB),
-        timerCtrl.io.apb -> (0x20000, 4 kB)
+        sysCtrl.io.apb -> (0x00000, 4 kB),
+        gpioCtrl.io.apb -> (0x10000, 4 kB),
+        uartCtrl.io.apb -> (0x20000, 4 kB),
+        timerCtrl.io.apb -> (0x30000, 4 kB)
       )
     )
 

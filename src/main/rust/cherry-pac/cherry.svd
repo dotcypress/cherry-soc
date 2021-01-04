@@ -18,20 +18,57 @@
   <resetMask>0xFFFFFFFF</resetMask>
   <peripherals>
     <peripheral>
-      <name>GPIOA</name>
-      <groupName>GPIO</groupName>
-      <description>General Purpose I/O</description>
+      <name>SYSTEM</name>
+      <groupName>SYSTEM</groupName>
+      <description>System information and status register</description>
       <baseAddress>0xF0000000</baseAddress>
       <addressBlock>
         <offset>0</offset>
-        <size>0xC</size>
+        <size>0x20</size>
+        <usage>registers</usage>
+      </addressBlock>
+      <registers>
+        <register>
+          <name>PANIC</name>
+          <description>Application panic flag</description>
+          <addressOffset>0x00</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+          <access>write-only</access>
+        </register>
+        <register>
+          <name>CLOCK</name>
+          <description>System clock frequency</description>
+          <addressOffset>0x04</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>PERIOD</name>
+          <description>System clock period in nanoseconds</description>
+          <addressOffset>0x08</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+          <access>read-only</access>
+        </register>
+      </registers>
+    </peripheral>
+    <peripheral>
+      <name>GPIOA</name>
+      <groupName>GPIO</groupName>
+      <description>General Purpose I/O</description>
+      <baseAddress>0xF0010000</baseAddress>
+      <addressBlock>
+        <offset>0</offset>
+        <size>0x0C</size>
         <usage>registers</usage>
       </addressBlock>
       <registers>
         <register>
           <name>IDR</name>
           <description>GPIO port input data register</description>
-          <addressOffset>0x0000</addressOffset>
+          <addressOffset>0x00</addressOffset>
           <resetValue>0x00</resetValue>
           <access>read-only</access>
           <size>32</size>
@@ -233,7 +270,7 @@
         <register>
           <name>ODR</name>
           <description>GPIO port output data register</description>
-          <addressOffset>0x0004</addressOffset>
+          <addressOffset>0x04</addressOffset>
           <resetValue>0x00</resetValue>
           <size>32</size>
           <fields>
@@ -434,7 +471,7 @@
         <register>
           <name>MODER</name>
           <description>GPIO port mode register</description>
-          <addressOffset>0x0008</addressOffset>
+          <addressOffset>0x08</addressOffset>
           <resetValue>0x00</resetValue>
           <size>32</size>
           <fields>
@@ -631,6 +668,258 @@
               <bitWidth>1</bitWidth>
             </field>
           </fields>
+        </register>
+      </registers>
+    </peripheral>
+    <peripheral>
+      <name>UART1</name>
+      <groupName>UART</groupName>
+      <description>Universal synchronous asynchronous receiver/transmitter</description>
+      <baseAddress>0xF0020000</baseAddress>
+      <addressBlock>
+        <offset>0</offset>
+        <size>0x80</size>
+        <usage>registers</usage>
+      </addressBlock>
+      <registers>
+        <register>
+          <name>DATA</name>
+          <description>UART data register</description>
+          <addressOffset>0x00</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+          <fields>
+            <field>
+              <name>TX</name>
+              <description>TX data</description>
+              <bitOffset>0</bitOffset>
+              <bitWidth>8</bitWidth>
+              <access>write-only</access>
+            </field>
+            <field>
+              <name>RX</name>
+              <description>RX data</description>
+              <bitOffset>0</bitOffset>
+              <bitWidth>8</bitWidth>
+              <access>read-only</access>
+            </field>
+          </fields>
+        </register>
+        <register>
+          <name>ISR</name>
+          <description>UART interrupt status register</description>
+          <addressOffset>0x04</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+          <fields>
+            <field>
+              <name>RX_FIFO</name>
+              <description>RX fifo occupancy</description>
+              <bitOffset>24</bitOffset>
+              <bitWidth>8</bitWidth>
+              <access>read-only</access>
+            </field>
+            <field>
+              <name>TX_FIFO</name>
+              <description>TX FIFO availability</description>
+              <bitOffset>16</bitOffset>
+              <bitWidth>8</bitWidth>
+              <access>read-only</access>
+            </field>
+            <field>
+              <name>TX_ACTIVE</name>
+              <description>TX active flag</description>
+              <bitOffset>15</bitOffset>
+              <bitWidth>1</bitWidth>
+              <access>read-only</access>
+            </field>
+            <field>
+              <name>RX_INT_PEND</name>
+              <description>RX interrupt pending flag</description>
+              <bitOffset>9</bitOffset>
+              <bitWidth>1</bitWidth>
+              <access>read-only</access>
+            </field>
+            <field>
+              <name>TX_INT_PEND</name>
+              <description>TX interrupt pending flag</description>
+              <bitOffset>8</bitOffset>
+              <bitWidth>1</bitWidth>
+              <access>read-only</access>
+            </field>
+            <field>
+              <name>RX_INT_EN</name>
+              <description>RX interrupt enable</description>
+              <bitOffset>1</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>TX_INT_EN</name>
+              <description>TX interrupt enable</description>
+              <bitOffset>0</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+          </fields>
+        </register>
+        <register>
+          <name>DIV</name>
+          <description>UART clock divider register</description>
+          <addressOffset>0x08</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+        </register>
+        <register>
+          <name>CFG</name>
+          <description>UART frame configuration register</description>
+          <addressOffset>0x0c</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+          <fields>
+            <field>
+              <name>STOP</name>
+              <description>Stop bits</description>
+              <bitOffset>16</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>PARITY</name>
+              <description>Parity</description>
+              <bitOffset>8</bitOffset>
+              <bitWidth>2</bitWidth>
+            </field>
+            <field>
+              <name>LENGTH</name>
+              <description>Word length</description>
+              <bitOffset>0</bitOffset>
+              <bitWidth>4</bitWidth>
+            </field>
+          </fields>
+        </register>
+        <register>
+          <name>RXSR</name>
+          <description>UART RX status register</description>
+          <addressOffset>0x10</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+          <fields>
+            <field>
+              <name>BREAK_CLEAR</name>
+              <description>Stop bits</description>
+              <bitOffset>11</bitOffset>
+              <bitWidth>1</bitWidth>
+              <access>write-only</access>
+            </field>
+            <field>
+              <name>BREAK_REQ</name>
+              <description>Stop bits</description>
+              <bitOffset>10</bitOffset>
+              <bitWidth>1</bitWidth>
+              <access>write-only</access>
+            </field>
+            <field>
+              <name>BREAK_DET</name>
+              <description>Stop bits</description>
+              <bitOffset>9</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>BREAK</name>
+              <description>Stop bits</description>
+              <bitOffset>8</bitOffset>
+              <bitWidth>1</bitWidth>
+              <access>read-only</access>
+            </field>
+            <field>
+              <name>OVERFLOW</name>
+              <description>RX overflow flag</description>
+              <bitOffset>1</bitOffset>
+              <bitWidth>1</bitWidth>
+              <access>read-only</access>
+            </field>
+            <field>
+              <name>ERROR</name>
+              <description>RX error flag</description>
+              <bitOffset>0</bitOffset>
+              <bitWidth>1</bitWidth>
+              <access>read-only</access>
+            </field>
+          </fields>
+        </register>
+      </registers>
+    </peripheral>
+    <peripheral>
+      <name>TIMER1</name>
+      <groupName>TIMER</groupName>
+      <description>Timer1</description>
+      <baseAddress>0xF0030000</baseAddress>
+      <addressBlock>
+        <offset>0</offset>
+        <size>0x12</size>
+        <usage>registers</usage>
+      </addressBlock>
+      <registers>
+        <register>
+          <name>COUNTER</name>
+          <description>Timer counter register</description>
+          <addressOffset>0x00</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+        </register>
+        <register>
+          <name>PSC</name>
+          <description>Timer prescaler register</description>
+          <addressOffset>0x04</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+        </register>
+        <register>
+          <name>LIMIT</name>
+          <description>Timer limit register</description>
+          <addressOffset>0x08</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+        </register>
+        <register>
+          <name>CFG</name>
+          <description>Timer configuration register</description>
+          <addressOffset>0x0c</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+          <fields>
+            <field>
+              <name>RELOAD</name>
+              <description>Timer auto reload</description>
+              <bitOffset>16</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+            <field>
+              <name>EN</name>
+              <description>Timer enable</description>
+              <bitOffset>0</bitOffset>
+              <bitWidth>1</bitWidth>
+            </field>
+          </fields>
+        </register>
+        <register>
+          <name>SR</name>
+          <description>Status register</description>
+          <addressOffset>0x10</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+        </register>
+        <register>
+          <name>ISR</name>
+          <description>Timer interrupt status register</description>
+          <addressOffset>0x14</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
+        </register>
+        <register>
+          <name>MASKR</name>
+          <description>Timer interrupt mask register</description>
+          <addressOffset>0x18</addressOffset>
+          <resetValue>0x00</resetValue>
+          <size>32</size>
         </register>
       </registers>
     </peripheral>

@@ -36,21 +36,24 @@ case class SnapOff() extends Bundle {
 
 case class Bootstrap() extends Component {
   val io = new Bundle {
+    val pmod2 = SnapOff()
     val uart = master(Uart())
     val reset = in(Bool())
-    val pmod2 = SnapOff()
+    val ledRed = out(Bool())
   }
 
-  val cherry = CherryCore(
+  val cherry = CherrySoC(
     CherryConfig.default("src/main/resources/cherry-app.hex")
   )
+
+  cherry.io.asyncReset := io.reset
+  cherry.io.uart <> io.uart
+
+  io.ledRed := ~cherry.io.panic
 
   cherry.io.jtag.tck := False
   cherry.io.jtag.tms := False
   cherry.io.jtag.tdi := False
-
-  cherry.io.asyncReset := io.reset
-  cherry.io.uart <> io.uart
 
   val gpio = cherry.io.gpio
 
