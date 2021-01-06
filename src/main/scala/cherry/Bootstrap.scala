@@ -42,18 +42,13 @@ case class Bootstrap() extends Component {
     val ledRed = out(Bool())
   }
 
-  val cherry = CherrySoC(
-    CherryConfig.default("src/main/resources/cherry-app.hex")
-  )
+  var config = CherryConfig.withRamFile("src/main/resources/cherry-app.hex")
+  val cherry = CherrySoC(config)
 
-  cherry.io.asyncReset := io.reset
+  cherry.io.asyncReset <> io.reset
   cherry.io.uart <> io.uart
 
-  io.ledRed := ~cherry.io.panic
-
-  cherry.io.jtag.tck := False
-  cherry.io.jtag.tms := False
-  cherry.io.jtag.tdi := False
+  io.ledRed <> ~cherry.io.panic
 
   val gpio = cherry.io.gpio
 

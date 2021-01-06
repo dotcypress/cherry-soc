@@ -15,19 +15,20 @@ import spinal.lib.io.TriStateArray
 case class CherrySoC(config: CherryConfig) extends Component {
   val io = new Bundle {
     val asyncReset = in(Bool())
-    val jtag = slave(Jtag())
+    val jtag = if (config.enableDebug) slave(Jtag()) else null
 
     val gpio = master(TriStateArray(config.gpioWidth bits))
     val uart = master(Uart())
+
     val panic = out(Bool())
   }
 
-  val resetCtrlClockDomain = ClockDomain(
-    clock = clockDomain.readClockWire,
-    config = ClockDomainConfig(resetKind = BOOT)
-  )
-
-  val resetCtrl = new ClockingArea(resetCtrlClockDomain) {
+  val resetCtrl = new ClockingArea(
+    ClockDomain(
+      clock = clockDomain.readClockWire,
+      config = ClockDomainConfig(resetKind = BOOT)
+    )
+  ) {
     val systemClkResetCounter = Reg(UInt(6 bits)) init (0)
     val mainClkResetUnbuffered = False
 
@@ -44,41 +45,13 @@ case class CherrySoC(config: CherryConfig) extends Component {
     val systemReset = RegNext(mainClkResetUnbuffered)
   }
 
-  val systemClockDomain = ClockDomain(
-    clock = clockDomain.readClockWire,
-    reset = resetCtrl.systemReset,
-    frequency = FixedFrequency(config.coreFrequency)
-  )
-
-  new ClockingArea(systemClockDomain) {
-    val pipelinedMemoryBusConfig = PipelinedMemoryBusConfig(
-      addressWidth = 32,
-      dataWidth = 32
+  val coreCtrl = new ClockingArea(
+    ClockDomain(
+      clock = clockDomain.readClockWire,
+      reset = resetCtrl.systemReset,
+      frequency = FixedFrequency(config.coreFrequency)
     )
-
-    val plugins = ArrayBuffer(
-      new IBusSimplePlugin(
-        resetVector = 0x80000000L,
-        cmdForkOnSecondStage = true,
-        cmdForkPersistence = false
-      ),
-      new DBusSimplePlugin(),
-      new CsrPlugin(CsrPluginConfig.smallest(mtvecInit = 0x80000020L)),
-      new DecoderSimplePlugin(catchIllegalInstruction = false),
-      new RegFilePlugin(regFileReadyKind = plugin.SYNC),
-      new IntAluPlugin,
-      new SrcPlugin(),
-      new LightShifterPlugin,
-      new HazardSimplePlugin(
-        bypassExecute = true,
-        bypassMemory = true,
-        bypassWriteBack = true,
-        bypassWriteBackBuffer = true
-      ),
-      new BranchPlugin(earlyBranch = true),
-      new YamlPlugin("cpu0.yaml")
-    )
-
+  ) {
     if (config.enableDebug) {
       val debugClockDomain = ClockDomain(
         clock = clockDomain.readClockWire,
@@ -92,13 +65,12 @@ case class CherrySoC(config: CherryConfig) extends Component {
         io.jtag <> debugPlugin.io.bus.fromJtag()
       }
 
-      plugins += debugPlugin
+      config.plugins += debugPlugin
     }
 
-    val cpu = new VexRiscv(VexRiscvConfig(plugins))
-    val mainBusArbiter = new MainBusArbiter(pipelinedMemoryBusConfig)
+    val cpu = new VexRiscv(VexRiscvConfig(config.plugins))
+    val mainBusArbiter = new MainBusArbiter(config.pipelinedMemoryBusConfig)
 
-    val timerInterrupt = False
     val externalInterrupt = False
 
     for (plugin <- cpu.plugins) plugin match {
@@ -110,7 +82,7 @@ case class CherrySoC(config: CherryConfig) extends Component {
       }
       case plugin: CsrPlugin => {
         plugin.externalInterrupt := externalInterrupt
-        plugin.timerInterrupt := timerInterrupt
+        plugin.timerInterrupt := False
       }
       case _ =>
     }
@@ -118,13 +90,22 @@ case class CherrySoC(config: CherryConfig) extends Component {
     val ram = new Ram(
       onChipRamSize = config.onChipRamSize,
       onChipRamHexFile = config.onChipRamHexFile,
-      memoryBusConfig = pipelinedMemoryBusConfig
+      memoryBusConfig = config.pipelinedMemoryBusConfig
     )
 
     val apbBridge = new PipelinedMemoryBusToApbBridge(
       apb3Config = Apb3Config(addressWidth = 20, dataWidth = 32),
-      pipelinedMemoryBusConfig = pipelinedMemoryBusConfig,
+      pipelinedMemoryBusConfig = config.pipelinedMemoryBusConfig,
       pipelineBridge = true
+    )
+
+    MemoryBusDecoder(
+      pipelineMaster = true,
+      master = mainBusArbiter.io.masterBus,
+      specification = ArrayBuffer[(PipelinedMemoryBus, SizeMapping)](
+        ram.io.bus -> (0x80000000L, config.onChipRamSize),
+        apbBridge.io.pipelinedMemoryBus -> (0xf0000000L, 1 MB)
+      )
     )
 
     val sysCtrl = new SystemCtrl()
@@ -141,7 +122,7 @@ case class CherrySoC(config: CherryConfig) extends Component {
     externalInterrupt setWhen (uartCtrl.io.interrupt)
 
     val timerCtrl = new TimerCtrl()
-    timerInterrupt setWhen (timerCtrl.io.interrupt)
+    externalInterrupt setWhen (timerCtrl.io.interrupt)
 
     Apb3Decoder(
       apbBridge.io.apb,
@@ -150,15 +131,6 @@ case class CherrySoC(config: CherryConfig) extends Component {
         gpioCtrl.io.apb -> (0x10000, 4 kB),
         uartCtrl.io.apb -> (0x20000, 4 kB),
         timerCtrl.io.apb -> (0x30000, 4 kB)
-      )
-    )
-
-    MemoryBusDecoder(
-      pipelineMaster = true,
-      master = mainBusArbiter.io.masterBus,
-      specification = ArrayBuffer[(PipelinedMemoryBus, SizeMapping)](
-        ram.io.bus -> (0x80000000L, config.onChipRamSize),
-        apbBridge.io.pipelinedMemoryBus -> (0xf0000000L, 1 MB)
       )
     )
   }

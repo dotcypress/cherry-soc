@@ -16,12 +16,7 @@ fn main() -> ! {
   let mut uart = UART1::take().unwrap().serial(serial::Config::default());
   let mut timer = TIMER1::take().unwrap().timer();
 
-  write!(uart, "\r\nBooting Cherry").ok();
-  for _ in 0..10 {
-    timer.delay(100.ms());
-    write!(uart, ".").ok();
-  }
-  write!(uart, "\r\n$> ").ok();
+  write!(uart, "\r\nBooting Cherry\r\n").ok();
 
   let mut led_0 = gpioa.pa0.into_output();
   let mut led_1 = gpioa.pa1.into_output();
@@ -33,11 +28,11 @@ fn main() -> ! {
   let btn_2 = gpioa.pa30;
   let btn_3 = gpioa.pa29;
 
-  timer.start(4.hz());
-  timer.enable_autoreload();
-  timer.listen();
-
   uart.rx().listen();
+  unsafe {
+    cherry_hal::arch::register::mstatus::set_mie();
+    cherry_hal::arch::register::mie::set_mext();
+  }
 
   led_1.set_high().ok();
   led_2.set_low().ok();
@@ -45,36 +40,37 @@ fn main() -> ! {
   led_4.set_low().ok();
 
   loop {
-    led_0
-      .set_level(uart.rx().is_pending() || timer.is_pending())
-      .ok();
-
-    if timer.is_pending() {
-      led_1.toggle().ok();
-      led_2.toggle().ok();
-      led_3.toggle().ok();
-      led_4.toggle().ok();
-      timer.unpend();
-    }
+    led_1.toggle().ok();
+    led_2.toggle().ok();
+    led_3.toggle().ok();
+    led_4.toggle().ok();
 
     if btn_1.is_high().unwrap() {
       panic!("Hello panic");
     }
 
     if btn_2.is_high().unwrap() {
-      writeln!(uart, "{}\r", timer.get_current()).ok();
+      led_0.toggle().ok();
     }
 
     if btn_3.is_low().unwrap() {
-      match uart.read() {
-        Ok(byte) => {
-          uart.write(byte).ok();
-        }
-        Err(cherry_hal::nb::Error::WouldBlock) => {}
-        Err(_) => {
-          panic!("Serial fault");
-        }
-      }
+      timer.delay(100.ms());
+    } else {
+      timer.delay(500.ms());
+    }
+  }
+}
+
+#[export_name = "MachineExternal"]
+fn uart_interrupt() {
+  let mut uart = unsafe { UART1::conjure().serial(serial::Config::default()) };
+  match uart.read() {
+    Ok(byte) => {
+      uart.write(byte).ok();
+    }
+    Err(cherry_hal::nb::Error::WouldBlock) => {}
+    Err(_) => {
+      panic!("Serial fault");
     }
   }
 }
