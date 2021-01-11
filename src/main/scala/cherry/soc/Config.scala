@@ -38,23 +38,6 @@ object CherryConfig {
         addressWidth = 32,
         dataWidth = 32
       ),
-      uartConfig = UartCtrlMemoryMappedConfig(
-        uartCtrlConfig = UartCtrlGenerics(
-          dataWidthMax = 8,
-          clockDividerWidth = 20,
-          preSamplingSize = 1,
-          samplingSize = 3,
-          postSamplingSize = 1
-        ),
-        initConfig = UartCtrlInitConfig(
-          baudrate = 115200,
-          dataLength = 7,
-          parity = UartParityType.NONE,
-          stop = UartStopType.ONE
-        ),
-        txFifoDepth = 16,
-        rxFifoDepth = 16
-      ),
       plugins = ArrayBuffer(
         new IBusSimplePlugin(
           resetVector = 0x80000000L,
@@ -86,9 +69,14 @@ object CherryConfig {
           )
         ),
         new DecoderSimplePlugin(),
-        new RegFilePlugin(regFileReadyKind = plugin.SYNC),
+        new RegFilePlugin(
+          regFileReadyKind = plugin.SYNC
+        ),
         new IntAluPlugin,
-        new SrcPlugin(),
+        new SrcPlugin(
+          separatedAddSub = false,
+          executeInsertion = true
+        ),
         new LightShifterPlugin,
         new HazardSimplePlugin(
           bypassExecute = true,
@@ -98,6 +86,23 @@ object CherryConfig {
         ),
         new BranchPlugin(earlyBranch = true),
         new YamlPlugin("cpu0.yaml")
+      ),
+      uartConfig = UartCtrlMemoryMappedConfig(
+        uartCtrlConfig = UartCtrlGenerics(
+          dataWidthMax = 8,
+          clockDividerWidth = 20,
+          preSamplingSize = 1,
+          samplingSize = 3,
+          postSamplingSize = 1
+        ),
+        initConfig = UartCtrlInitConfig(
+          baudrate = 115200,
+          dataLength = 7,
+          parity = UartParityType.NONE,
+          stop = UartStopType.ONE
+        ),
+        txFifoDepth = 16,
+        rxFifoDepth = 16
       )
     )
 }
